@@ -1,0 +1,98 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>POS Dual-Screen</title><style>
+:root{--b:#121824;--c:#1e293b;--p:#3b82f6;--t:#f8fafc;--m:#94a3b8}*{box-sizing:border-box;margin:0;padding:0;font-family:sans-serif}
+body{background:var(--b);color:var(--t);padding:15px;font-size:14px}body.cust{display:flex;justify-content:center;align-items:center;height:100vh;padding:0}
+.h{display:flex;justify-content:between;align-items:center;margin-bottom:15px;border-bottom:1px solid #334155;padding-bottom:10px}
+.btn{background:var(--p);color:#white;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;font-weight:600}
+.w{display:grid;grid-template-columns:1fr 1fr;gap:15px}.w.det .cv{display:none}.w.det{grid-template-columns:1fr}
+.pane{background:var(--c);border:1px solid #334155;border-radius:12px;padding:15px;height:680px;display:flex;flex-direction:column}
+.gl{display:grid;grid-template-columns:1fr 260px;gap:15px;flex-grow:1;overflow:hidden}
+.mc{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;overflow-y:auto;align-content:start}
+.mi{background:#334155;border-radius:6px;padding:10px;text-align:center;cursor:pointer}
+.mi div:last-child{color:#38bdf8;font-size:12px;font-weight:bold}
+.cp{display:flex;flex-direction:column;background:#0f172a;border-radius:8px;padding:10px}
+.ci{flex-grow:1;overflow-y:auto;font-size:13px}.cr{display:flex;justify-content:between;padding:4px 0}
+.tb{border-top:2px dashed #334155;padding-top:8px}.gt{font-size:16px;font-weight:bold;color:#f59e0b;margin-top:4px}
+.th{background:#334155;border-radius:16px;padding:15px;width:100%;max-width:380px;margin:0 auto;display:flex;flex-direction:column}
+.ts{background:#0f172a;border-radius:8px;padding:15px;height:260px;display:flex;flex-direction:column;position:relative}
+.sh{display:flex;justify-content:between;font-size:11px;color:var(--m);font-family:monospace}
+.sb{flex-grow:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center}
+.tg{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;width:100%;margin-top:8px}
+.tbnt{background:#1e293b;border:1px solid #334155;color:#white;padding:8px;border-radius:4px;cursor:pointer;font-size:13px}
+.sc{width:100%;background:#white;border-radius:4px;margin-top:8px;display:none}#canvas{background:#white;width:100%;height:90px;cursor:crosshair}
+.hs{margin-top:15px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.hb{background:#1e293b;border:1px solid #334155;color:var(--m);padding:10px;border-radius:6px;cursor:not-allowed;opacity:.4;text-align:center;font-size:12px}
+.hb.a{cursor:pointer;opacity:1;color:#white;border-color:var(--p)}
+.rc{background:#white;color:#black;font-family:monospace;padding:10px;width:100%;margin-top:15px;display:none;max-height:180px;overflow-y:auto;font-size:11px}
+.sp{border:3px solid rgba(255,255,255,.1);width:24px;height:24px;border-radius:50%;border-left-color:var(--p);animation:s 1s linear infinite;display:none}
+@keyframes s{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+</style></head><body>
+    <div id="pr">
+        <div class="h"><div><h2>POS Terminal</h2></div><button class="btn" id="db" onclick="oTab()">Open New Tab Screen</button></div>
+        <div class="w" id="mw">
+            <div class="pane">
+                <div class="gl">
+                    <div class="mc" id="cat"></div>
+                    <div class="cp">
+                        <div class="ci" id="cb"><div style="color:var(--m);text-align:center;margin-top:40px;">Empty</div></div>
+                        <div class="tb">
+                            <div class="cr"><span>Total Due</span><span class="gt" id="tot">$0.00</span></div>
+                            <button class="btn" id="pb" style="width:100%;margin-top:8px;" onclick="pTerm()" disabled>Send to Terminal</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="pane cv"><div id="tt"></div></div>
+        </div>
+    </div>
+    <template id="ttmp">
+        <div class="th">
+            <div class="ts">
+                <div class="sh"><span id="clk">00:00:00</span><span>ONLINE</span></div>
+                <div class="sb">
+                    <div id="st" style="font-weight:bold;font-size:16px">Welcome</div><div id="ss" style="color:var(--m);font-size:12px">Awaiting Register...</div>
+                    <div class="sp" id="spn"></div><div class="tg" id="tps"></div>
+                    <div class="sc" id="sbk"><canvas id="canvas"></canvas>
+                        <div style="display:flex;justify-content:space-between;padding:3px;background:#f1f5f9"><button onclick="cSig()" style="font-size:10px">Clear</button><button onclick="sSig()" style="font-size:10px;background:var(--p);color:#fff">Confirm</button></div>
+                    </div>
+                </div>
+            </div>
+            <div class="hs"><div class="hb" id="h1" onclick="sHw('tap')">NFC Tap</div><div class="hb" id="h2" onclick="sHw('chip')">Chip In</div><div class="hb" id="h3" onclick="sHw('swipe')">Swipe</div></div>
+            <div class="rc" id="rcp"></div>
+        </div>
+    </template>
+<script>
+const items=[{n:'Filet Mignon',p:42},{n:'Salmon',p:29.5},{n:'Truffle Fries',p:12},{n:'Caesar Salad',p:14},{n:'Craft Beer',p:8.5},{n:'Old Fashioned',p:15}];
+let cart=[],tot=0,txn=null,isC=window.location.search.includes('customer'),cv,cx,dr=false;
+const a=new(window.AudioContext||window.webkitAudioContext)();
+function bp(f,d,t="sine"){try{const o=a.createOscillator(),g=a.createGain();o.type=t;o.frequency.setValueAtTime(f,a.currentTime);g.gain.setValueAtTime(.05,a.currentTime);o.connect(g);g.connect(a.destination);o.start();o.stop(a.currentTime+d)}catch(e){}}
+function sS(){bp(880,.1);setTimeout(()=>bp(1320,.15),100)}function sP(){bp(523,.08);setTimeout(()=>bp(523,.08),120)}
+function sPr(){for(let i=0;i<10;i++)bp(Math.random()*400+100,.03,"square")}
+if(isC){
+    document.getElementById('pr').style.display='none';document.body.classList.add('cust');
+    document.body.appendChild(document.getElementById('ttmp').content.cloneNode(true));
+    iClk();iCan();window.addEventListener('storage',e=>{if(e.key==='pos_p')sTerm()});sTerm();
+}else{
+    document.getElementById('tt').appendChild(document.getElementById('ttmp').content.cloneNode(true));
+    document.getElementById('cat').innerHTML=items.map((i,idx)=>`<div class="mi" onclick="add(${idx})"><div>${i.n}</div><div>$${i.p.toFixed(2)}</div></div>`).join('');
+    iClk();iCan();localStorage.removeItem('pos_p');
+}
+function oTab(){localStorage.setItem('pos_p',JSON.stringify({s:'STANDBY'}));window.open(window.location.href+'?customer=1','_blank');document.getElementById('mw').classList.add('det');document.getElementById('db').disabled=true}
+function iClk(){setInterval(()=>{const c=document.getElementById('clk');if(c)c.innerText=new Date().toTimeString().split(' ')[0]},1000)}
+function add(i){cart.push(items[i]);tot=cart.reduce((a,c)=>a+c.p,0)*1.0825;document.getElementById('cb').innerHTML=cart.map(c=>`<div class="cr"><span>${c.n}</span><span>$${c.p.toFixed(2)}</span></div>`).join('');document.getElementById('tot').innerText=`$${tot.toFixed(2)}`;document.getElementById('pb').disabled=false}
+function pTerm(){uTerm({s:'TIP',a:tot,i:cart})}
+function uTerm(p){txn=p;localStorage.setItem('pos_p',JSON.stringify(p));rTerm(p)}
+function sTerm(){const d=localStorage.getItem('pos_p');if(d){txn=JSON.parse(d);rTerm(txn)}}
+function rTerm(p){
+    if(!p)return;const t=document.getElementById('st'),s=document.getElementById('ss'),sp=document.getElementById('spn'),tg=document.getElementById('tps'),sb=document.getElementById('sbk'),rc=document.getElementById('rcp');
+    sp.style.display=tg.style.display=sb.style.display='none';['h1','h2','h3'].forEach(id=>document.getElementById(id).classList.remove('a'));
+    if(p.s==='STANDBY'){t.innerText="Welcome";s.innerText="Awaiting Register...";rc.style.display='none'}
+    if(p.s==='TIP'){sP();t.innerText="Select Gratuity";s.innerText=`Total: $${p.a.toFixed(2)}`;tg.style.display='grid';tg.innerHTML=[.15,.18,.22,0].map(pct=>`<button class="tbnt" onclick="aTip(${p.a*pct})">${pct?pct*100+'%':'No Tip'}</button>`).join('')}
+    if(p.s==='CARD'){sP();t.innerText="Present Card";s.innerText=`Total: $ ${(p.a+(p.t||0)).toFixed(2)}`;['h1','h2','h3'].forEach(id=>document.getElementById(id).classList.add('a'))}
+    if(p.s==='PROC'){t.innerText="Authorizing...";s.innerText="Contacting Bank...";sp.style.display='block'}
+    if(p.s==='SIG'){sP();t.innerText="Sign Below";s.innerText="Sign on Screen Glass";sb.style.display='block';cv.width=cv.parentElement.clientWidth;cx.lineWidth=3;cx.lineCap="round"}
+    if(p.s==='DONE'){sS();t.innerText="Approved";s.innerText="Thank You!";rc.style.display='block';sPr();const sm=p.i?p.i.reduce((a,c)=>a+c.p,0):p.a,tx=sm*.0825,tp=p.t||0;rc.innerHTML=`<center><b>BISTRO SIMULATOR</b><br>${new Date().toLocaleString()}<br>---</center>`+(p.i?p.i.map(i=>`<div class="cr"><span>${i.n}</span><span>$${i.p.toFixed(2)}</span></div>`).join(''):'')?+`<hr><div class="cr"><span>TAX</span><span>$${tx.toFixed(2)}</span></div><div class="cr"><span>TIP</span><span>$${tp.toFixed(2)}</span></div><div class="cr"><span>TOTAL</span><span>$ ${(sm+tx+tp).toFixed(2)}</span></div><center><br>AUTH: OK<br>METHOD: ${p.m}</center>`}
+}
+function aTip(amt){txn.t=amt;txn.s='CARD';uTerm(txn)}
+function sHw(m){if(!txn||txn.s!=='CARD')return;txn.s='PROC';txn.m=m.toUpperCase();uTerm(txn);setTimeout(()=>{txn.s='SIG';uTerm(txn)},1500)}
+function iCan(){cv=document.getElementById('canvas');if(!cv)return;cx=cv.getContext('2d');cv.onmousedown=e=>{dr=true;cx.beginPath();const r=cv.getBoundingClientRect();cx.moveTo(e.clientX-r.left,e.clientY-r.top)};cv.onmousemove=e=>{if(!dr)return;const r=cv.getBoundingClientRect();cx.lineTo(e.clientX-r.left,e.clientY-r.top);cx.stroke()};window.onmouseup=()=>{dr=false}}
+function cSig(){cx.clearRect(0,0,cv.width,cv.height)}function sSig(){txn.s='DONE';uTerm(txn)}
